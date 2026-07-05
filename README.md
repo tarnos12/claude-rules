@@ -13,10 +13,10 @@ Paste this at the start of a session:
 > `gh repo view tarnos12/claude-rules` since it's private) and apply it for the
 > rest of this session.
 
-Claude will run something like:
+Claude will run:
 
 ```
-gh api repos/tarnos12/claude-rules/contents/RULES.md --jq '.content' | base64 -d
+gh api repos/tarnos12/claude-rules/contents/RULES.md -H "Accept: application/vnd.github.raw"
 ```
 
 (A cloud session needs its GitHub auth to have access to this private repo. If
