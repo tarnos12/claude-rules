@@ -43,6 +43,12 @@ race entirely with one rule:
 
 ## Worker loop (#2/#3/…)
 
+0. **Always pull the default branch before accepting a new task.**
+   `git fetch origin && git checkout master && git pull origin master` (use
+   `main` if that's the default). Cut your task branch from this fresh base. This
+   is non-negotiable: it's how you pick up newly-pushed coordination files and
+   guarantees you build on merged work, not a stale checkout. A session that
+   skips this can't see its `TASK_<n>.md` and ends up guessing its task.
 1. `git fetch origin coordination && git checkout -B coordination origin/coordination`
 2. Open **your own `TASK_<n>.md`** — it has your assignment: the task, the
    branch name to use, your owned vs. shared files, and any notes from #1.
@@ -105,6 +111,10 @@ session, the manager can wake it out-of-band; reserve that for blockers.
 
 ## Rules that keep it clean
 
+- **Pull the default branch before every new task.** Fetch and start from the
+  latest `master`/`main` before accepting an assignment or cutting a task
+  branch — never build on a stale base, and it's how you see freshly-pushed
+  coordination files.
 - **One session writes one file** — the invariant that makes all of this
   race-free. Never write another session's file.
 - **One task = one branch = one PR.** Don't bundle unrelated work.
