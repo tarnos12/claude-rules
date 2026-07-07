@@ -25,7 +25,7 @@ so the rules are in place from commit #1.
 |---|---|
 | `templates/CLAUDE.md` | Per-project **handoff/status doc**. Claude Code auto-loads it, so it's the single source of truth for "where are we, what's next, hold these conventions, strip these testing hacks." Update its status section in the same commit as every task. |
 | `templates/DESIGN.md` | The **staged-roadmap** design doc (Prototype → MVP → Demo → 1.0), with a testable exit criterion per stage and "resolve the open questions before Stage 0." |
-| `templates/PARALLEL_SESSIONS.md` | The **multi-session coordination** protocol (shared task board on a `coordination` branch, atomic claim). Include only if several sessions may run at once. |
+| `templates/PARALLEL_SESSIONS.md` | The **multi-session coordination** protocol — *central dispatch*: one manager session owns the board and merges PRs, workers each read/write only their own assignment file, so writes never race. Include only if several sessions may run at once. |
 
 ## Files
 

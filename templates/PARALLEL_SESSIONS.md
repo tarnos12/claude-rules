@@ -1,60 +1,97 @@
-# Parallel Sessions — Coordination Protocol
+# Parallel Sessions — Coordination Protocol (Central Dispatch)
 
-Use this when **multiple Claude Code sessions may work on the repo at once**
-(e.g. several cloud agents plus a local one). It stops two sessions from
-building the same thing or stomping each other's files. Delete this file if you
-only ever work solo.
+Use this when **several Claude Code sessions work the same repo at once** (e.g.
+a few cloud agents plus a local one). It stops two sessions from building the
+same thing, stomping each other's files, or blocking on a shared file. Delete
+this file if you always work solo.
 
 ## The idea
 
-- **`master` (or your default branch) stays code-only** — the meeting point for
+- **`master` (your default branch) stays code-only** — the meeting point for
   merged, working code.
-- **A long-lived `coordination` branch holds a shared task board** —
-  `TASKS.md` — that every session reads and writes. It's intentionally *not* on
-  `master`, so board churn never conflicts with code.
-- Each task is built on **its own feature branch** and merged via PR.
+- **A long-lived `coordination` branch holds the coordination files** (the task
+  board + per-session assignment files). It's *never merged into `master`*, so
+  board churn never touches code history.
+- **One session manages; the rest do the work.** Tasks are **assigned by a
+  single manager**, not self-claimed.
 
-## Before writing any code
+## Why not self-claiming?
 
-1. `git fetch origin coordination` and read `TASKS.md`.
-2. Pick a task marked `AVAILABLE`.
-3. **Claim it** (see protocol below). The claim is an atomic push race — first
-   push wins. If your push is rejected, someone beat you to it; pull and pick
-   another.
-4. Create a feature branch `claude/<short-task-slug>` and build there.
-5. Open a PR into `master` when done. Keep the PR focused on one task.
+The obvious design — every session edits a shared `TASKS.md` to claim a task —
+causes a **push-race**: two sessions edit the same file, one push is rejected,
+and sessions block each other on that one file. Central dispatch removes the
+race entirely with one rule:
 
-## Claim protocol (atomic, first-push-wins)
+> **Each session writes exactly ONE file.** No two sessions ever write the same
+> file, so their pushes to `coordination` never collide.
 
-```
-git fetch origin coordination
-git checkout coordination && git pull
-# edit TASKS.md: change your task's status AVAILABLE -> CLAIMED (<your id>, <date>)
-git commit -am "Claim: <task>"
-git push origin coordination      # if rejected, someone else won — pull & retry with another task
-```
+## Roles
 
-## TASKS.md format (suggested)
+| Session | Role |
+|---|---|
+| **#1 — Manager** | Owns the board (`TASKS.md`). Assigns tasks, picks branch names, **merges PRs one at a time** (rebase + resolve conflicts), keeps the board current. Also writes each worker's assignment. |
+| **#2, #3, … — Workers** | Each reads/writes **only its own `TASK_<n>.md`**. Builds the assigned task on the branch #1 named, opens a PR, waits for the next assignment. |
 
-```
-## AVAILABLE
-- [ ] <task-id> — <one-line description> — files: <likely files/areas>
+## File layout (on the `coordination` branch)
 
-## CLAIMED
-- [~] <task-id> — <desc> — <session id>, <date>
+- `TASKS.md` — the catalog + live status of every task, and who's assigned.
+  **Only #1 writes it.**
+- `TASK_2.md`, `TASK_3.md`, … — one per worker. Holds that worker's current
+  assignment (task, branch name, owned/shared files, notes) **written by #1**,
+  and the worker's own status/log **written by that worker**. Everyone may
+  *read* any file; each writes only the ones above.
 
-## DONE
-- [x] <task-id> — <desc> — merged in <PR/commit>
-```
+## Worker loop (#2/#3/…)
+
+1. `git fetch origin coordination && git checkout -B coordination origin/coordination`
+2. Open **your own `TASK_<n>.md`** — it has your assignment: the task, the
+   branch name to use, your owned vs. shared files, and any notes from #1.
+3. Build on that branch, off `master`. Commit, push, open a PR into `master`.
+4. Set the **Status** line at the top of *your* `TASK_<n>.md` to
+   `IN REVIEW — PR #NN`, add a one-line note in your log, and push to
+   `coordination`. That's your signal to #1.
+5. Wait for your next assignment in the same file. **Never edit `TASKS.md` or
+   another worker's file.**
+
+## Manager loop (#1)
+
+1. Maintain `TASKS.md` (the pool + status). Assign an `AVAILABLE` task by
+   writing the worker's `TASK_<n>.md` assignment section and a branch name;
+   flip the board row to `ASSIGNED`.
+2. When a worker's status flips to `IN REVIEW`, review and **merge its PR
+   (serially — one at a time)**, rebasing/resolving as needed.
+3. Flip the board row to `DONE` and drop the worker's next task into their file.
+
+Merging into `master` is the only serial bottleneck, and that's by design (one
+clean integration point).
+
+## Messaging between sessions (optional, still one-writer)
+
+Give each `TASK_<n>.md` two mail sections so questions don't need a shared file:
+
+- **`## Inbox from #1`** (top) — **only #1 writes.** Answers/directives to that
+  worker. Workers read it every sync.
+- **`## Outbox`** (bottom) — **only that worker writes.** Post a question tagged
+  `#from→#to · OPEN`.
+
+Routing is a **star through #1**: to ask another worker, address it in your
+Outbox; #1 relays it into the other worker's Inbox and relays the answer back.
+It's **pull, not push** — a session sees new mail on its next
+`git fetch origin coordination`. For a truly blocking question to an idle
+session, the manager can wake it out-of-band; reserve that for blockers.
+
+## Status legend (for `TASKS.md`)
+
+`AVAILABLE` (in pool) · `ASSIGNED` (dispatched to a worker) · `IN REVIEW`
+(PR open, awaiting #1's merge) · `DONE` (merged) · `BLOCKED` (see notes).
 
 ## Rules that keep it clean
 
+- **One session writes one file** — the invariant that makes all of this
+  race-free. Never write another session's file.
 - **One task = one branch = one PR.** Don't bundle unrelated work.
-- **Prefer additive, self-contained modules** over editing shared hot files
-  (e.g. a central UI or state file). A new feature in a new file that plugs into
-  an existing extension point → far fewer merge conflicts.
-- **Leave handoff notes in `TASKS.md`** for other sessions (blockers,
-  decisions, "don't touch X, I'm mid-refactor").
-- **Sync often** — `git fetch` before starting and before pushing.
-- Keep each session's change **small and mergeable**; long-running branches
-  drift and conflict.
+- **Prefer additive, self-contained modules** over editing shared hot files (a
+  central UI/state file). A new feature in a new file that plugs into an
+  existing extension point → far fewer merge conflicts across sessions.
+- **Sync often** — `git fetch origin coordination` before starting and before
+  pushing; keep each change small and mergeable.
