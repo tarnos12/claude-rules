@@ -1,9 +1,71 @@
-# Parallel Sessions — Coordination Protocol (Central Dispatch)
+# Parallel Sessions — Coordination Protocols
 
-Use this when **several Claude Code sessions work the same repo at once** (e.g.
-a few cloud agents plus a local one). It stops two sessions from building the
-same thing, stomping each other's files, or blocking on a shared file. Delete
-this file if you always work solo.
+Use this when multi-part work should be split across workers. Delete this file
+if you always work solo. There are **two models** — pick by how the workers run:
+
+## Which model?
+
+- **In-session agent team (RECOMMENDED default).** One manager session works on
+  the default branch and runs the "workers" as **worktree-isolated subagents it
+  spawns** (the Agent tool, `isolation: "worktree"`). Best when work happens on
+  **one machine / one filesystem** — which is the usual case. One integrator, no
+  cross-session machinery. See [§A](#a-in-session-agent-team-recommended).
+- **Central dispatch across real sessions.** Several **independent** Claude Code
+  sessions (e.g. separate cloud agents + a local one) coordinate through a
+  `coordination` branch and per-session files. Use only when you genuinely need
+  durable, independent sessions or to spread token cost across machines. See
+  [§B](#b-central-dispatch-across-real-sessions).
+
+Both share the same spine: **one manager owns the board and is the single serial
+integration point; workers build non-overlapping slices; the manager merges.**
+
+---
+
+# A. In-session agent team (recommended)
+
+One **manager session** works on the default branch (`master`/`main`) and drives
+the whole loop; there are no separate worker sessions.
+
+## Model
+
+- **Manager (this session):** works on the default branch directly; sole
+  committer to it. Owns the board (`TASKS.md`) + a shared **data contract**.
+  Splits a phase into non-overlapping slices, **spawns one subagent per slice**,
+  and integrates each result in a defined merge order, resolving conflicts.
+- **Workers = subagents:** spawned via the Agent tool with
+  **`isolation: "worktree"`**, so each builds on its own checkout and parallel
+  edits to the same hot file don't collide. Each gets one task, builds it, runs
+  its test/smoke check, and returns its diff + how-to-verify. They're
+  **ephemeral** — no durable per-worker sessions, no per-worker files, no
+  `coordination` branch.
+
+## Workflow
+
+1. **Split & contract.** Break the phase into non-overlapping slices; write a
+   shared data contract in `TASKS.md` so the slices compose (shared shapes,
+   namespaces, non-destructive config merges).
+2. **Fan out.** Spawn one worktree-isolated subagent per slice with its task spec.
+3. **Build & verify.** Each subagent builds in its worktree, runs the headless
+   test/smoke check, returns its result.
+4. **Integrate.** Apply results to the default branch in the stated merge order,
+   run tests after each, resolve conflicts, and update `TASKS.md` + the project
+   `CLAUDE.md` status in the same commit.
+
+## Why this beats separate sessions (when on one machine)
+
+One filesystem + one integrator means you can drop the `coordination` branch, the
+per-worker files, and the one-file-per-session push-race rule entirely. Worktree
+isolation gives each parallel subagent a clean checkout, and the manager drives
+end-to-end with no manual per-session prompting.
+
+---
+
+# B. Central dispatch across real sessions
+
+Use this when **several independent Claude Code sessions work the same repo at
+once** (e.g. a few cloud agents plus a local one). It stops two sessions from
+building the same thing, stomping each other's files, or blocking on a shared
+file.
 
 ## The idea
 
