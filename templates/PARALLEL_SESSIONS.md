@@ -85,6 +85,20 @@ session, the manager can wake it out-of-band; reserve that for blockers.
 `AVAILABLE` (in pool) · `ASSIGNED` (dispatched to a worker) · `IN REVIEW`
 (PR open, awaiting #1's merge) · `DONE` (merged) · `BLOCKED` (see notes).
 
+## Setting it up in a new project
+
+1. Create the long-lived `coordination` branch off `master`.
+2. On it, add `TASKS.md` whose **header states this model** (paste the sections
+   above, adapted) so every session reads the same protocol — then the task
+   catalog. This header is the **live, operational source of truth**; this
+   template is just the generic starting point, so keep the board header current
+   and let it win if they ever differ.
+3. Add one `TASK_<n>.md` per worker session.
+4. In the project's root `CLAUDE.md`, add a one-line pointer: "Working in
+   parallel? `git fetch origin coordination` and read the `TASKS.md` header —
+   Central Dispatch, don't self-claim." Keeping that pointer consistent with the
+   board is what prevents sessions getting contradictory instructions.
+
 ## Rules that keep it clean
 
 - **One session writes one file** — the invariant that makes all of this
