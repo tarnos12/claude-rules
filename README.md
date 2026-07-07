@@ -25,7 +25,7 @@ so the rules are in place from commit #1.
 |---|---|
 | `templates/CLAUDE.md` | Per-project **handoff/status doc**. Claude Code auto-loads it, so it's the single source of truth for "where are we, what's next, hold these conventions, strip these testing hacks." Update its status section in the same commit as every task. |
 | `templates/DESIGN.md` | The **staged-roadmap** design doc (Prototype → MVP → Demo → 1.0), with a testable exit criterion per stage and "resolve the open questions before Stage 0." |
-| `templates/PARALLEL_SESSIONS.md` | **Parallel-work coordination**, two models: **(A, recommended)** an *in-session agent team* — one manager works on the default branch and spawns worktree-isolated subagents per slice, integrating serially (best on one machine); **(B)** *central dispatch* across independent real sessions via a `coordination` branch + per-session files (only when you need durable, separate sessions). Both keep one manager as the single serial integrator. |
+| `templates/PARALLEL_SESSIONS.md` | **Parallel-work coordination** — the *in-session agent team* model: one manager works on the default branch and spawns worktree-isolated subagents (the Agent tool, `isolation: "worktree"`) per slice, integrating them serially. One integrator, no cross-session machinery. Include only if you split work across subagents. |
 
 ## Files
 

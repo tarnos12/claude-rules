@@ -1,187 +1,71 @@
-# Parallel Sessions — Coordination Protocols
+# Parallel Work — In-Session Agent Team
 
-Use this when multi-part work should be split across workers. Delete this file
-if you always work solo. There are **two models** — pick by how the workers run:
+Use this when multi-part work should be split across workers. Delete this file if
+you always work solo.
 
-## Which model?
-
-- **In-session agent team (RECOMMENDED default).** One manager session works on
-  the default branch and runs the "workers" as **worktree-isolated subagents it
-  spawns** (the Agent tool, `isolation: "worktree"`). Best when work happens on
-  **one machine / one filesystem** — which is the usual case. One integrator, no
-  cross-session machinery. See [§A](#a-in-session-agent-team-recommended).
-- **Central dispatch across real sessions.** Several **independent** Claude Code
-  sessions (e.g. separate cloud agents + a local one) coordinate through a
-  `coordination` branch and per-session files. Use only when you genuinely need
-  durable, independent sessions or to spread token cost across machines. See
-  [§B](#b-central-dispatch-across-real-sessions).
-
-Both share the same spine: **one manager owns the board and is the single serial
-integration point; workers build non-overlapping slices; the manager merges.**
-
----
-
-# A. In-session agent team (recommended)
-
-One **manager session** works on the default branch (`master`/`main`) and drives
-the whole loop; there are no separate worker sessions.
+**One model:** a single **manager session** works on the default branch and runs
+the workers as **worktree-isolated subagents it spawns** (the Agent tool,
+`isolation: "worktree"`). One integrator, one filesystem, no cross-session
+machinery. (This replaces the older "central dispatch across separate real
+sessions" model — we don't use that anymore.)
 
 ## Model
 
-- **Manager (this session):** works on the default branch directly; sole
-  committer to it. Owns the board (`TASKS.md`) + a shared **data contract**.
-  Splits a phase into non-overlapping slices, **spawns one subagent per slice**,
-  and integrates each result in a defined merge order, resolving conflicts.
+- **Manager (this session):** works on the default branch (`master`/`main`)
+  directly and is the **sole committer** to it. Owns the board (`TASKS.md`) and a
+  shared **data contract**. Splits a phase into non-overlapping slices, **spawns
+  one subagent per slice**, and integrates each result in a defined merge order,
+  resolving conflicts.
 - **Workers = subagents:** spawned via the Agent tool with
-  **`isolation: "worktree"`**, so each builds on its own checkout and parallel
-  edits to the same hot file don't collide. Each gets one task, builds it, runs
-  its test/smoke check, and returns its diff + how-to-verify. They're
+  **`isolation: "worktree"`**, so each builds on its own checkout cut from the
+  latest default branch and parallel edits to the same hot file don't collide.
+  Each gets one task, builds it, runs its test/smoke check, commits inside its
+  worktree, and returns its branch/SHA + diff + how-to-verify. Subagents are
   **ephemeral** — no durable per-worker sessions, no per-worker files, no
   `coordination` branch.
 
 ## Workflow
 
 1. **Split & contract.** Break the phase into non-overlapping slices; write a
-   shared data contract in `TASKS.md` so the slices compose (shared shapes,
-   namespaces, non-destructive config merges).
-2. **Fan out.** Spawn one worktree-isolated subagent per slice with its task spec.
+   shared data contract in `TASKS.md` so the slices compose (shared data shapes,
+   namespaces, non-destructive config merges, module fences).
+2. **Fan out.** Spawn one worktree-isolated subagent per slice, each with its task
+   spec and the contract. Independent slices run in parallel; a slice that others
+   depend on is integrated first, then the rest fan out on the updated base.
 3. **Build & verify.** Each subagent builds in its worktree, runs the headless
-   test/smoke check, returns its result.
-4. **Integrate.** Apply results to the default branch in the stated merge order,
-   run tests after each, resolve conflicts, and update `TASKS.md` + the project
-   `CLAUDE.md` status in the same commit.
+   test / smoke check, commits in-worktree (does not push), and reports.
+4. **Integrate.** Manager merges each subagent's branch into the default branch in
+   the stated merge order, runs the test suite after each, resolves conflicts, and
+   updates `TASKS.md` + the project `CLAUDE.md` status in the same commit.
 
-## Why this beats separate sessions (when on one machine)
-
-One filesystem + one integrator means you can drop the `coordination` branch, the
-per-worker files, and the one-file-per-session push-race rule entirely. Worktree
-isolation gives each parallel subagent a clean checkout, and the manager drives
-end-to-end with no manual per-session prompting.
-
----
-
-# B. Central dispatch across real sessions
-
-Use this when **several independent Claude Code sessions work the same repo at
-once** (e.g. a few cloud agents plus a local one). It stops two sessions from
-building the same thing, stomping each other's files, or blocking on a shared
-file.
-
-## The idea
-
-- **`master` (your default branch) stays code-only** — the meeting point for
-  merged, working code.
-- **A long-lived `coordination` branch holds the coordination files** (the task
-  board + per-session assignment files). It's *never merged into `master`*, so
-  board churn never touches code history.
-- **One session manages; the rest do the work.** Tasks are **assigned by a
-  single manager**, not self-claimed.
-
-## Why not self-claiming?
-
-The obvious design — every session edits a shared `TASKS.md` to claim a task —
-causes a **push-race**: two sessions edit the same file, one push is rejected,
-and sessions block each other on that one file. Central dispatch removes the
-race entirely with one rule:
-
-> **Each session writes exactly ONE file.** No two sessions ever write the same
-> file, so their pushes to `coordination` never collide.
-
-## Roles
-
-| Session | Role |
-|---|---|
-| **#1 — Manager** | **Works on the default branch (`master`/`main`) directly — not a feature branch.** Owns the board (`TASKS.md`). Assigns tasks, picks branch names, **merges PRs one at a time** (rebase + resolve conflicts), keeps the board current. Also writes each worker's assignment. |
-| **#2, #3, … — Workers** | Each reads/writes **only its own `TASK_<n>.md`**. Builds the assigned task on the branch #1 named, opens a PR, waits for the next assignment. |
-
-## File layout (on the `coordination` branch)
-
-- `TASKS.md` — the catalog + live status of every task, and who's assigned.
-  **Only #1 writes it.**
-- `TASK_2.md`, `TASK_3.md`, … — one per worker. Holds that worker's current
-  assignment (task, branch name, owned/shared files, notes) **written by #1**,
-  and the worker's own status/log **written by that worker**. Everyone may
-  *read* any file; each writes only the ones above.
-
-## Worker loop (#2/#3/…)
-
-0. **Always pull the default branch before accepting a new task.**
-   `git fetch origin && git checkout master && git pull origin master` (use
-   `main` if that's the default). Cut your task branch from this fresh base. This
-   is non-negotiable: it's how you pick up newly-pushed coordination files and
-   guarantees you build on merged work, not a stale checkout. A session that
-   skips this can't see its `TASK_<n>.md` and ends up guessing its task.
-1. `git fetch origin coordination && git checkout -B coordination origin/coordination`
-2. Open **your own `TASK_<n>.md`** — it has your assignment: the task, the
-   branch name to use, your owned vs. shared files, and any notes from #1.
-3. Build on that branch, off `master`. Commit, push, open a PR into `master`.
-4. Set the **Status** line at the top of *your* `TASK_<n>.md` to
-   `IN REVIEW — PR #NN`, add a one-line note in your log, and push to
-   `coordination`. That's your signal to #1.
-5. Wait for your next assignment in the same file. **Never edit `TASKS.md` or
-   another worker's file.**
-
-## Manager loop (#1)
-
-0. **Work on the default branch directly** (`master`/`main`). The manager does
-   not develop on its own feature branch — it maintains the board and integrates
-   every worker PR here, and it is the single point allowed to commit to the
-   default branch. (Workers never push to the default branch; they PR into it.)
-1. Maintain `TASKS.md` (the pool + status). Assign an `AVAILABLE` task by
-   writing the worker's `TASK_<n>.md` assignment section and a branch name;
-   flip the board row to `ASSIGNED`.
-2. When a worker's status flips to `IN REVIEW`, review and **merge its PR
-   (serially — one at a time)**, rebasing/resolving as needed.
-3. Flip the board row to `DONE` and drop the worker's next task into their file.
-
-Merging into `master` is the only serial bottleneck, and that's by design (one
-clean integration point).
-
-## Messaging between sessions (optional, still one-writer)
-
-Give each `TASK_<n>.md` two mail sections so questions don't need a shared file:
-
-- **`## Inbox from #1`** (top) — **only #1 writes.** Answers/directives to that
-  worker. Workers read it every sync.
-- **`## Outbox`** (bottom) — **only that worker writes.** Post a question tagged
-  `#from→#to · OPEN`.
-
-Routing is a **star through #1**: to ask another worker, address it in your
-Outbox; #1 relays it into the other worker's Inbox and relays the answer back.
-It's **pull, not push** — a session sees new mail on its next
-`git fetch origin coordination`. For a truly blocking question to an idle
-session, the manager can wake it out-of-band; reserve that for blockers.
-
-## Status legend (for `TASKS.md`)
-
-`AVAILABLE` (in pool) · `ASSIGNED` (dispatched to a worker) · `IN REVIEW`
-(PR open, awaiting #1's merge) · `DONE` (merged) · `BLOCKED` (see notes).
-
-## Setting it up in a new project
-
-1. Create the long-lived `coordination` branch off `master`.
-2. On it, add `TASKS.md` whose **header states this model** (paste the sections
-   above, adapted) so every session reads the same protocol — then the task
-   catalog. This header is the **live, operational source of truth**; this
-   template is just the generic starting point, so keep the board header current
-   and let it win if they ever differ.
-3. Add one `TASK_<n>.md` per worker session.
-4. In the project's root `CLAUDE.md`, add a one-line pointer: "Working in
-   parallel? `git fetch origin coordination` and read the `TASKS.md` header —
-   Central Dispatch, don't self-claim." Keeping that pointer consistent with the
-   board is what prevents sessions getting contradictory instructions.
+Serial integration into the default branch is the one intentional bottleneck —
+the single clean integration point.
 
 ## Rules that keep it clean
 
-- **Pull the default branch before every new task.** Fetch and start from the
-  latest `master`/`main` before accepting an assignment or cutting a task
-  branch — never build on a stale base, and it's how you see freshly-pushed
-  coordination files.
-- **One session writes one file** — the invariant that makes all of this
-  race-free. Never write another session's file.
-- **One task = one branch = one PR.** Don't bundle unrelated work.
-- **Prefer additive, self-contained modules** over editing shared hot files (a
-  central UI/state file). A new feature in a new file that plugs into an
-  existing extension point → far fewer merge conflicts across sessions.
-- **Sync often** — `git fetch origin coordination` before starting and before
-  pushing; keep each change small and mergeable.
+- **The manager keeps the default branch current and is its only committer.**
+  Each subagent's worktree is cut from the latest default branch, so workers
+  always build on merged work.
+- **One subagent = one slice = one branch.** Don't bundle unrelated work; build
+  only the assigned slice, not the whole phase.
+- **A shared data contract up front.** Agreed data shapes / namespaces / config
+  keys are what let independently-built slices compose in one file at merge.
+- **Prefer additive, self-contained modules** over editing shared hot files.
+  Fence each slice's additions in clearly-marked blocks and add config via
+  non-destructive merges — far fewer conflicts at integration.
+- **Verify before integrating.** A slice lands only with its test/smoke check
+  green; the manager re-runs the suite after each merge.
+
+## Status legend (for `TASKS.md`)
+
+`assigned` · `in progress` (subagent running) · `returned` (subagent done,
+awaiting integration) · `merged` (integrated into the default branch) ·
+`blocked` (see notes).
+
+## Setting it up in a new project
+
+1. In `TASKS.md`, paste this model as the header (so any session reads the same
+   protocol), then the task board + the shared data contract.
+2. In the project's root `CLAUDE.md`, add a one-line pointer: "Parallel work?
+   Manager works on the default branch and spawns worktree-isolated subagents per
+   slice — see `TASKS.md`." Keep that pointer consistent with the board.
