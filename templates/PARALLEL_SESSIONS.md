@@ -29,7 +29,7 @@ race entirely with one rule:
 
 | Session | Role |
 |---|---|
-| **#1 — Manager** | Owns the board (`TASKS.md`). Assigns tasks, picks branch names, **merges PRs one at a time** (rebase + resolve conflicts), keeps the board current. Also writes each worker's assignment. |
+| **#1 — Manager** | **Works on the default branch (`master`/`main`) directly — not a feature branch.** Owns the board (`TASKS.md`). Assigns tasks, picks branch names, **merges PRs one at a time** (rebase + resolve conflicts), keeps the board current. Also writes each worker's assignment. |
 | **#2, #3, … — Workers** | Each reads/writes **only its own `TASK_<n>.md`**. Builds the assigned task on the branch #1 named, opens a PR, waits for the next assignment. |
 
 ## File layout (on the `coordination` branch)
@@ -55,6 +55,10 @@ race entirely with one rule:
 
 ## Manager loop (#1)
 
+0. **Work on the default branch directly** (`master`/`main`). The manager does
+   not develop on its own feature branch — it maintains the board and integrates
+   every worker PR here, and it is the single point allowed to commit to the
+   default branch. (Workers never push to the default branch; they PR into it.)
 1. Maintain `TASKS.md` (the pool + status). Assign an `AVAILABLE` task by
    writing the worker's `TASK_<n>.md` assignment section and a branch name;
    flip the board row to `ASSIGNED`.
