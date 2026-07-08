@@ -23,18 +23,25 @@ overrides or extends these when they conflict.
   session (local or cloud) knows the current state.
 - Keep any design/plan doc current — mark items done, add new plans as scope grows.
 
-## Parallel / multi-part work — use an in-session agent team
+## Parallel / multi-part work — orchestrate a dynamic Workflow
 
-- When a task is big enough to split, run it as an **in-session agent team**, not
-  as separate sessions. **This session is the manager:** it works on the default
-  branch, splits the work into non-overlapping slices, and spawns **one
-  worktree-isolated subagent per slice** — the Agent tool with
-  `isolation: "worktree"`, so parallel edits to the same file don't collide.
+- When a task is big enough to split, run it as a **dynamic Workflow** that this
+  session orchestrates. **This session is the planner, orchestrator, and
+  reviewer:** it works on the default branch, plans the work into non-overlapping
+  additive slices, and adapts the plan as results come back — it does **not** build
+  the slices itself.
+- **Delegate all building to subagents**, choosing each subagent's model by the
+  slice's complexity: **Sonnet** for simple, mechanical, or well-specified slices;
+  **Opus** for complex, nuanced, or canonical slices — and for the **verify and
+  review stages**.
+- Each subagent **builds, verifies, and commits in its own worktree** (the Agent
+  tool with `isolation: "worktree"`, so parallel edits to the same file don't
+  collide); subagents **never push**.
 - **Integrate results yourself, one slice at a time**, re-running tests after each
-  merge — the manager is the single serial integration point. Subagents build and
-  commit in their own worktree; they don't push.
-- Agree a shared **data contract** up front (data shapes, module fences,
-  non-destructive config merges) so independently-built slices compose in one file.
+  merge — the orchestrator is the **sole serial integrator and committer**.
+- Additive slices, a shared **data contract** agreed up front (data shapes, module
+  fences, non-destructive config merges), and **verify-before-integrate** still
+  hold, so independently-built slices compose in one file.
 - Full protocol + per-project setup: `templates/PARALLEL_SESSIONS.md`.
 
 ## Running & verifying
@@ -62,6 +69,6 @@ project's root and fill in the `<…>` placeholders:
 
 - `CLAUDE.md` — per-project handoff/status doc (Claude Code auto-loads it).
 - `DESIGN.md` — the staged-roadmap design doc (Prototype → MVP → Demo → 1.0).
-- `PARALLEL_SESSIONS.md` — the in-session agent-team protocol (manager on the
-  default branch + worktree-isolated subagents); include only if you split work
-  across subagents. See the "Parallel / multi-part work" rule above.
+- `PARALLEL_SESSIONS.md` — the Workflow-orchestration protocol (orchestrator on
+  the default branch + worktree-isolated build/verify subagents); include only if
+  you split work across subagents. See the "Parallel / multi-part work" rule above.
