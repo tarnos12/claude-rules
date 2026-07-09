@@ -9,6 +9,9 @@ overrides or extends these when they conflict.
 - **Commit after every completed task** — one task = one focused, well-described
   commit. Frequent commits, not one big pile at the end.
 - **Push after committing** when the repo has a remote.
+- **Land each completed task as a PR** — open a pull request when the task is
+  done and merge it once tested and working, rather than committing to the
+  default branch directly.
 - If on the default branch and the change is substantial, branch first.
 - **Sync before starting** — `git fetch`, check the main branch; other
   sessions/machines may share the repo.
@@ -38,7 +41,10 @@ overrides or extends these when they conflict.
   tool with `isolation: "worktree"`, so parallel edits to the same file don't
   collide); subagents **never push**.
 - **Integrate results yourself, one slice at a time**, re-running tests after each
-  merge — the orchestrator is the **sole serial integrator and committer**.
+  merge — the orchestrator is the **sole serial integrator**. Land **every
+  completed task as a pull request** into the default branch: open the PR when
+  the task is done, merge it once tested and working (the orchestrator opens and
+  merges its own PRs; nothing merges untested).
 - Additive slices, a shared **data contract** agreed up front (data shapes, module
   fences, non-destructive config merges), and **verify-before-integrate** still
   hold, so independently-built slices compose in one file.

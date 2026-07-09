@@ -19,7 +19,7 @@ One agent is the **orchestrator**: planner, orchestrator, and reviewer in a sing
 3. **Author the Workflow script.** Express the plan as phases of `agent()` / `pipeline()` / `parallel()` calls. Parallel slices that mutate files get their own worktree; sequential dependencies go in a `pipeline()`.
 4. **Fan out and build.** Each subagent implements its slice **in its worktree**, on the right model tier, against the shared contract. It **builds and verifies its own work in-worktree and commits there** — it does not push and does not touch the default branch.
 5. **Verify before integrate.** For each finished slice the orchestrator runs the **adversarial verify** step. A slice that fails goes back to its builder (or is re-sliced); only a slice that survives verification is eligible to integrate.
-6. **Integrate serially.** The orchestrator pulls verified slices into the default branch **one at a time**, resolving any seam conflicts as the single integration authority, re-checking after each merge that the whole still builds and runs.
+6. **Integrate serially, via a PR per task.** The orchestrator pulls verified slices together **one at a time**, resolving any seam conflicts as the single integration authority, re-checking after each merge that the whole still builds and runs — then lands the completed task as a **pull request** into the default branch, merged once tested and working (the orchestrator opens and merges its own PRs).
 7. **Record status in the same commit.** Each integration commit **also updates the project `CLAUDE.md` status section** — the handoff/status doc moves forward in lockstep with the code, never in a separate follow-up. One integrated slice, one commit, status current.
 
 ## Rules that keep it clean
@@ -29,7 +29,7 @@ One agent is the **orchestrator**: planner, orchestrator, and reviewer in a sing
 - **Worktrees for concurrent writers.** Any two slices that could write the same file at the same time run in separate worktrees. Never let parallel subagents share a working tree.
 - **Subagents don't push.** Build, verify, commit — in-worktree, full stop. The default branch has exactly one writer.
 - **Verify is adversarial and separate.** The agent that verifies is not the agent that built (and is usually Opus). "It compiled" is not verification.
-- **The orchestrator is the only integrator.** All merging into the default branch is serial and done by one role. This is the invariant that keeps the run race-free.
+- **The orchestrator is the only integrator.** All merging into the default branch is serial and done by one role, and every completed task lands as a PR merged only after its tests pass. This is the invariant that keeps the run race-free.
 - **Right model for the slice.** Sonnet for mechanical, Opus for judgement and for review. Match the tier to the work, not to habit.
 - **Status ships with the code.** `CLAUDE.md` is updated in the same commit as the integration it describes, so any agent (or the author) can resume cold.
 
