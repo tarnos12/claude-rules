@@ -58,8 +58,11 @@ overrides or extends these when they conflict.
 
 ## Running & verifying
 
-- After a change, tell me **how to see it running** (dev server URL / command /
-  preview link) and include it in the reply.
+- After a change, tell me **how to see it running** — and ALWAYS include a
+  link: the project's **GitHub Pages URL** if it deploys there (deploy first so
+  the link reflects the change), otherwise publish an **Artifact** and link
+  that. A dev-server URL alone is not enough (remote sessions' localhost is
+  unreachable to me).
 - **Verify before claiming done** — actually run the code / preview and check
   behavior; report failures honestly with real output.
 - Prefer the **fastest feedback loop that proves it** — exercise pure/core
