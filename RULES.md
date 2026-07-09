@@ -68,6 +68,27 @@ overrides or extends these when they conflict.
 - For multi-part tasks, do the whole thing rather than stopping to ask
   permission for each reversible step.
 
+## Model usage & reporting
+
+- **Route work to the cheapest model that can do it well.** The top-tier main
+  loop (Fable/Opus) is for orchestration, design decisions, risky/coupled
+  refactors, integration + merges, and final review — not for simple tasks.
+  Delegate via subagents/workflows with an explicit `model`:
+  - **Haiku** — mechanical edits (comment/dead-code removal, renames, doc
+    stubs), greps/audits, running verification scripts.
+  - **Sonnet** — well-specified implementation slices, tests, display-only
+    changes, standard bugfixes with a tight spec.
+  - **Opus** — complex implementation slices, adversarial code review,
+    plan/spec validation.
+  - **Fable (or session top model)** — the manager only: splitting work,
+    writing contracts/specs, integrating, judging, and anything genuinely hard
+    or cross-cutting.
+- **After every completed task/batch, report model usage:** a short table of
+  which model did what (main loop + each subagent/workflow phase) and the
+  subagent token counts (from the harness usage data), plus a one-line note on
+  anything that ran on a bigger model than it needed and how to route it
+  cheaper next time.
+
 ## Starting a new project
 
 Copy the drop-in templates from [`templates/`](templates/) into the new
