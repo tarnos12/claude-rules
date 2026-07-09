@@ -33,10 +33,16 @@ overrides or extends these when they conflict.
   reviewer:** it works on the default branch, plans the work into non-overlapping
   additive slices, and adapts the plan as results come back — it does **not** build
   the slices itself.
-- **Delegate all building to subagents**, choosing each subagent's model by the
-  slice's complexity: **Sonnet** for simple, mechanical, or well-specified slices;
+- **Delegate all building to subagents** — the orchestrator (the priciest model)
+  never builds, even simple things. Pick each subagent's tier by
+  complexity-per-token: **Haiku** for trivial/mechanical edits (doc lines,
+  catalog entries, renames), **Sonnet** for simple, well-specified slices,
   **Opus** for complex, nuanced, or canonical slices — and for the **verify and
-  review stages**.
+  review stages**. Batch tiny edits together so per-agent overhead doesn't
+  exceed the work itself.
+- **After each completed work item, report the model/token usage** — which
+  model built/verified what and how many tokens each stage consumed — so model
+  routing can keep being tuned.
 - Each subagent **builds, verifies, and commits in its own worktree** (the Agent
   tool with `isolation: "worktree"`, so parallel edits to the same file don't
   collide); subagents **never push**.
