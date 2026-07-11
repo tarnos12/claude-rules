@@ -17,15 +17,13 @@ Claude fetches that URL (public, no auth) and follows it.
 
 ## Start a new project
 
-Copy the drop-in files from [`templates/`](templates/) into the new project's
-root and fill in the `<…>` placeholders. Commit them first, before writing code,
-so the rules are in place from commit #1.
+Copy the drop-in files from [`templates/`](templates/) into the new project.
+The **only** file you author per project is the GDD — everything else is generic.
 
 | Template | What it is |
 |---|---|
-| `templates/CLAUDE.md` | Per-project **handoff/status doc**. Claude Code auto-loads it, so it's the single source of truth for "where are we, what's next, hold these conventions, strip these testing hacks." Update its status section in the same commit as every task. |
-| `templates/DESIGN.md` | The **staged-roadmap** design doc (Prototype → MVP → Demo → 1.0), with a testable exit criterion per stage and "resolve the open questions before Stage 0." |
-| `templates/PARALLEL_SESSIONS.md` | **Parallel-work coordination** — the *dynamic Workflow-orchestration* model: a planner/orchestrator/reviewer authors a Workflow that delegates slices to Sonnet or Opus subagents by task complexity, integrating each result serially. One integrator, no cross-session machinery. Include only if you split work across subagents. |
+| `templates/CLAUDE.md` | **Generic, portable** operating manual — copy it in as-is, no edits. It carries no project-specific info; it just points to these rules + the project's GDD. Claude Code auto-loads it. |
+| `templates/GDD.md` | The **staged-roadmap** design doc (Prototype → MVP → Demo → 1.0), with a testable exit criterion per stage. The single home for everything unique to the project — design, scope, architecture, how to run it, and current status. |
 
 ## Files
 
@@ -35,7 +33,7 @@ so the rules are in place from commit #1.
 
 ## The habit that ties it together
 
-**Keep the project's `CLAUDE.md` "Current status" section current in the same
-commit as every completed task.** That one habit lets any session — a different
-Claude instance, a cloud agent, or me weeks later — resume cold without
-re-deriving context.
+**Keep the project's `GDD.md` current — update its status in the same commit as
+every completed task.** That one habit lets any session — a different Claude
+instance, a cloud agent, or me weeks later — resume cold without re-deriving
+context.

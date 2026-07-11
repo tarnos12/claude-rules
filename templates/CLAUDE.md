@@ -1,73 +1,40 @@
-# <Project Name> — Working Notes for Claude Code
+# Working Notes for Claude Code
 
-This file is the handoff/status doc (it plays the `HANDOFF.md` role the working
-rules describe). **Keep it current: update the "Current status" section in the
-same commit as every completed task**, so any Claude Code session (or the
-author) can resume cold. Author is <name> (GitHub `<username>`).
+Generic, portable operating manual — **copy this file into any repo as-is.** It
+contains **no project-specific information**: everything unique to a project
+lives in that project's **GDD.md**. If something here would only be true for one
+project, it belongs in the GDD, not here.
 
-> **Working rules:** follow
-> <https://raw.githubusercontent.com/tarnos12/claude-rules/master/RULES.md>
-> (canonical; cloud/remote sessions that can't see local config should fetch
-> this raw URL and follow it). Design/scope source of truth: [DESIGN.md](DESIGN.md).
-> Parallel sessions? see [PARALLEL_SESSIONS.md](PARALLEL_SESSIONS.md). Read these
-> before starting.
+## Read first, every session
 
-## What this is
+1. **Canonical working rules:**
+   <https://raw.githubusercontent.com/tarnos12/claude-rules/master/RULES.md> —
+   fetch and follow it. It is the source of truth for how we work (including how
+   we run parallel work as **agent teams**).
+2. **This project's everything — design, scope, architecture, the staged phase
+   roadmap with exit criteria, how to run it, and current status — is in
+   [GDD.md](GDD.md)** (repo root; some projects keep it at `docs/GDD.md`). Read
+   it before starting. The GDD is the only place project-specific facts live.
 
-<One paragraph: what the project is, the stack, and any hard constraints
-(e.g. "no build step", "offline-first", "targets X"). Link the design doc as
-the source of truth for scope.>
+## Standing rules (apply to every project)
 
-Repo: <url> (branch `<default-branch>`).
-
-## Run & test
-
-- Dev server / build / run command: `<command>` — <how to launch it>.
-- **After a change, tell the author how to see it running** (URL / command /
-  preview link) and verify it yourself before claiming done.
-- Prefer the fastest feedback loop that proves it: exercise pure/core logic
-  headless (a script or unit test) rather than always driving the full app.
-- <Environment quirks worth knowing, e.g. "screenshots time out here — verify
-  via DOM inspection instead">.
-
-## Current status (update this section every commit)
-
-**<Current stage / phase>.**
-
-Done:
-- <bullet per shipped capability — enough that a cold reader knows what exists>
-
-Next (recommended order):
-1. <the immediate next task>
-2. <then this>
-
-## Architecture conventions (hold these)
-
-<The load-bearing rules that keep the codebase coherent. Fill in yours. Common
-patterns that tend to pay off:>
-- **One pure core.** Keep the central logic a deterministic, side-effect-free
-  function (e.g. `resolve(input, seed)`); never leak I/O, UI, or global state
-  into it. It's what makes it testable and reusable.
-- **One canonical data shape** shared across the variants that use it, instead
-  of parallel schemas.
-- **Single aggregation/derivation pipeline** — derive computed values from
-  sources every time; never mutate-in-place. New sources plug into the one
-  pipeline.
-- **External/other-party systems behind an interface**, even when stubbed now,
-  so a real implementation swaps in without touching callers.
-- **Prefer additive, self-contained modules** over editing shared hot files —
-  fewer conflicts, especially with parallel sessions.
-- **Persistence is versioned** with a migration path; persist timestamps so
-  wall-clock/offline behavior is free.
-
-## TESTING-ONLY — strip before ship
-
-<List every debug/testing convenience and exactly how to remove it, so the
-pre-release cleanup is mechanical. Mark them `TESTING ONLY` in code too.>
-
-## Workflow
-
-- One commit per completed task; **update "Current status" above in that same
-  commit.** (Full rules: the RULES.md link at the top.)
-- <commit message trailer / signing convention, if any>.
-- <platform quirks, e.g. "CRLF warnings on Windows are expected/harmless">.
+- **Verify before claiming done.** Exercise the change yourself and run the
+  project's test suite(s); don't claim a result you haven't observed. After a
+  change, tell the author how to see it running (URL / command).
+- **One commit per completed task,** and update the project's current-status
+  notes in that same commit, so any session (or the author) can resume cold.
+- **Versioning.** Every author-visible change bumps the project's version and
+  changelog — the codebase holds the single source of truth for both, and the
+  version surfaced to the author must match it. Announce/republish the build per
+  the project's process whenever the version changes.
+- **Balance/tuning constants live in one config location** — never scatter magic
+  numbers through the code.
+- **Keep the simulation deterministic** wherever a project has one: a single
+  seedable PRNG; no `Math.random` and no wall-clock reads inside sim code, so a
+  given (state, inputs, seed) always reproduces.
+- **Prefer additive, self-contained modules** over editing shared hot files.
+  When running an agent team, **module/file boundaries are ownership
+  boundaries** — no two teammates edit the same file.
+- **Don't add build tooling or dependencies** unless the project already uses
+  them; keep whatever "just run it" story the project has intact.
+- Commit trailer: `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
