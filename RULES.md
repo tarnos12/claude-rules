@@ -18,43 +18,40 @@ overrides or extends these when they conflict.
 
 ## Session continuity docs
 
-- For multi-session work, maintain a **handoff doc** with a "next session /
-  start here" pointer and a "last session summary". A repo-root `CLAUDE.md`
-  works well as this doc since Claude Code auto-loads it; otherwise `HANDOFF.md`.
-  Create it if it doesn't exist.
-- **Update the handoff doc in the SAME commit as the code change** so the next
+- For multi-session work, keep the current state where it belongs: the project's
+  **GDD.md** (or a dedicated status doc it points to), with a "next session /
+  start here" pointer and a "last session summary". The generic `CLAUDE.md` is
+  **not** the place for project status — it stays project-agnostic.
+- **Update that status in the SAME commit as the code change** so the next
   session (local or cloud) knows the current state.
-- Keep any design/plan doc current — mark items done, add new plans as scope grows.
+- Keep the design/roadmap current — mark items done, add new plans as scope grows.
 
-## Parallel / multi-part work — orchestrate a dynamic Workflow
+## Parallel / multi-part work — run an agent team
 
-- When a task is big enough to split, run it as a **dynamic Workflow** that this
-  session orchestrates. **This session is the planner, orchestrator, and
-  reviewer:** it works on the default branch, plans the work into non-overlapping
-  additive slices, and adapts the plan as results come back — it does **not** build
-  the slices itself.
-- **Delegate all building to subagents** — the orchestrator (the priciest model)
-  never builds, even simple things. Pick each subagent's tier by
-  complexity-per-token: **Haiku** for trivial/mechanical edits (doc lines,
-  catalog entries, renames), **Sonnet** for simple, well-specified slices,
-  **Opus** for complex, nuanced, or canonical slices — and for the **verify and
-  review stages**. Batch tiny edits together so per-agent overhead doesn't
-  exceed the work itself.
-- **After each completed work item, report the model/token usage** — which
-  model built/verified what and how many tokens each stage consumed — so model
-  routing can keep being tuned.
-- Each subagent **builds, verifies, and commits in its own worktree** (the Agent
-  tool with `isolation: "worktree"`, so parallel edits to the same file don't
-  collide); subagents **never push**.
-- **Integrate results yourself, one slice at a time**, re-running tests after each
-  merge — the orchestrator is the **sole serial integrator**. Land **every
-  completed task as a pull request** into the default branch: open the PR when
-  the task is done, merge it once tested and working (the orchestrator opens and
-  merges its own PRs; nothing merges untested).
-- Additive slices, a shared **data contract** agreed up front (data shapes, module
-  fences, non-destructive config merges), and **verify-before-integrate** still
-  hold, so independently-built slices compose in one file.
-- Full protocol + per-project setup: `templates/PARALLEL_SESSIONS.md`.
+- When a task is big enough to split, run it as an **agent team**. Teammates are
+  separate, full Claude Code sessions with their own context that **message each
+  other directly** — including QA↔dev — and self-coordinate through a shared task
+  list, not only through the lead. (Use a plain subagent instead when only a
+  result matters with no cross-talk; use a single session for sequential,
+  same-file, or trivial work.)
+- **This session is the lead: integrator + gatekeeper**, not a build drone and
+  not a message bus. The lead freezes the **interface contracts** up front, owns
+  the integration/wiring file and the merges, routes cross-team findings,
+  adjudicates disagreements, and holds **phase go/no-go**. A QA/verification
+  teammate signs off against the exit criteria before anything is "done".
+- **File ownership = file boundaries.** No two teammates edit the same file; the
+  only shared surfaces are read-only interfaces and the single config location
+  (one owner). Raise interface changes with the lead before touching a shared seam.
+- **Give each teammate an explicit model** (they don't inherit the lead's), sized
+  to the work: cheaper models for mechanical or tightly-specified slices, the
+  stronger models for the hardest build, adversarial review, and integration.
+  Name teammates by role (e.g. `[Role]-[Model]-[Task]`) so they stay addressable.
+- **Verify before integrate.** The lead reviews each teammate's files, runs the
+  tests, and commits per verified slice; land completed work as PRs into the
+  default branch, merged once tested. Nothing merges untested.
+- Enable teams once per environment (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` at
+  session start). Keep a per-project agent-teams reference doc (e.g.
+  `docs/AGENT_TEAMS.md`) for the full operating detail.
 
 ## Running & verifying
 
@@ -77,34 +74,23 @@ overrides or extends these when they conflict.
 - For multi-part tasks, do the whole thing rather than stopping to ask
   permission for each reversible step.
 
-## Model usage & reporting
+## Model selection
 
-- **Route work to the cheapest model that can do it well.** The top-tier main
-  loop (Fable/Opus) is for orchestration, design decisions, risky/coupled
-  refactors, integration + merges, and final review — not for simple tasks.
-  Delegate via subagents/workflows with an explicit `model`:
-  - **Haiku** — mechanical edits (comment/dead-code removal, renames, doc
-    stubs), greps/audits, running verification scripts.
-  - **Sonnet** — well-specified implementation slices, tests, display-only
-    changes, standard bugfixes with a tight spec.
-  - **Opus** — complex implementation slices, adversarial code review,
-    plan/spec validation.
-  - **Fable (or session top model)** — the manager only: splitting work,
-    writing contracts/specs, integrating, judging, and anything genuinely hard
-    or cross-cutting.
-- **After every completed task/batch, report model usage:** a short table of
-  which model did what (main loop + each subagent/workflow phase) and the
-  subagent token counts (from the harness usage data), plus a one-line note on
-  anything that ran on a bigger model than it needed and how to route it
-  cheaper next time.
+- **Route work to the cheapest model that can do it well.** The session's top
+  model is for orchestration, design decisions, risky/coupled refactors,
+  integration + merges, and final/adversarial review — not for simple tasks.
+  Delegate the rest to teammates/subagents with an explicit `model`: cheap tiers
+  for mechanical or tightly-specified slices, mid tiers for well-specified
+  implementation and tests, top tiers for complex/nuanced slices and review.
 
 ## Starting a new project
 
-Copy the drop-in templates from [`templates/`](templates/) into the new
-project's root and fill in the `<…>` placeholders:
+Fill in only what's unique to the project — everything else is generic:
 
-- `CLAUDE.md` — per-project handoff/status doc (Claude Code auto-loads it).
-- `DESIGN.md` — the staged-roadmap design doc (Prototype → MVP → Demo → 1.0).
-- `PARALLEL_SESSIONS.md` — the Workflow-orchestration protocol (orchestrator on
-  the default branch + worktree-isolated build/verify subagents); include only if
-  you split work across subagents. See the "Parallel / multi-part work" rule above.
+- **`CLAUDE.md`** — copy the generic one in as-is (no per-project edits): it
+  carries no project-specific info and just points to this rules doc + the
+  project's GDD. Claude Code auto-loads it.
+- **`GDD.md`** (repo root or `docs/`) — the staged-roadmap design doc
+  (Prototype → MVP → Demo → 1.0) and the single home for everything unique to
+  the project (design, scope, architecture, how to run it, current status). This
+  is the one file you author per project.

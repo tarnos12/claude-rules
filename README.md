@@ -17,25 +17,36 @@ Claude fetches that URL (public, no auth) and follows it.
 
 ## Start a new project
 
-Copy the drop-in files from [`templates/`](templates/) into the new project's
-root and fill in the `<…>` placeholders. Commit them first, before writing code,
-so the rules are in place from commit #1.
+The flow — the only thing you author per project is the **GDD**:
 
-| Template | What it is |
-|---|---|
-| `templates/CLAUDE.md` | Per-project **handoff/status doc**. Claude Code auto-loads it, so it's the single source of truth for "where are we, what's next, hold these conventions, strip these testing hacks." Update its status section in the same commit as every task. |
-| `templates/DESIGN.md` | The **staged-roadmap** design doc (Prototype → MVP → Demo → 1.0), with a testable exit criterion per stage and "resolve the open questions before Stage 0." |
-| `templates/PARALLEL_SESSIONS.md` | **Parallel-work coordination** — the *dynamic Workflow-orchestration* model: a planner/orchestrator/reviewer authors a Workflow that delegates slices to Sonnet or Opus subagents by task complexity, integrating each result serially. One integrator, no cross-session machinery. Include only if you split work across subagents. |
+1. **Copy `templates/CLAUDE.md`** into the repo as-is (no edits). It's the
+   project-agnostic **agent-team orchestrator guide** — how the lead runs the
+   team (the 3 rules, audit protocol, readiness gate, roster bench). Claude Code
+   auto-loads it.
+2. **Author `GDD.md`** (from `templates/GDD.md`) — the staged-roadmap design doc
+   and the single home for everything unique to the project.
+3. **`PROJECT.md` is generated, not copied.** On the first session, the lead
+   distills `GDD.md` into a team-facing `PROJECT.md` (goal, stack, constraints,
+   module→ownership map, roster, milestone exit criteria) — **once**. Once it
+   exists it's the source of truth and isn't regenerated unless you ask. See
+   [`examples/PROJECT.md`](examples/PROJECT.md) for a real filled-in example.
+
+| Path | What it is | Per-project action |
+|---|---|---|
+| `templates/CLAUDE.md` | Generic agent-team orchestrator guide | **Copy as-is** |
+| `templates/GDD.md` | Staged-roadmap design-doc skeleton | **Author** it |
+| `examples/PROJECT.md` | Example of a generated `PROJECT.md` (real project) | **Reference only** — the lead generates yours from `GDD.md` |
 
 ## Files
 
 - `RULES.md` — the standing working rules Claude should follow (the source of
   truth; the raw URL above points here).
 - `templates/` — drop-in starter files for a new project.
+- `examples/` — real filled-in examples to model generated files on.
 
 ## The habit that ties it together
 
-**Keep the project's `CLAUDE.md` "Current status" section current in the same
-commit as every completed task.** That one habit lets any session — a different
-Claude instance, a cloud agent, or me weeks later — resume cold without
-re-deriving context.
+**Keep the project's `GDD.md` current — update its status in the same commit as
+every completed task.** That one habit lets any session — a different Claude
+instance, a cloud agent, or me weeks later — resume cold without re-deriving
+context.

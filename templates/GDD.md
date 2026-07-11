@@ -1,11 +1,12 @@
-# <Project Name> — Design & Staged Roadmap
+# <Project Name> — GDD (Design & Staged Roadmap)
 
 **Status:** Draft
 **Author:** <name>
 
-> This is the source of truth for scope. Keep it current: mark items done, add
-> new plans as scope evolves. The per-session status/handoff lives in
-> `CLAUDE.md`; this file is the bigger picture.
+> This is the source of truth for everything project-specific — scope, design,
+> architecture, how to run it, and current status. Keep it current: mark items
+> done and update the status in the same commit as each task. (The repo's
+> `CLAUDE.md` is a generic pointer; all project-specific detail lives here.)
 
 ---
 
