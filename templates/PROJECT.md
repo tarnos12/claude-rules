@@ -1,3 +1,13 @@
+<!--
+  EXAMPLE PROJECT.md — a real filled-in example (the Dwarf Colony Sandbox game).
+  PROJECT.md is not copied verbatim: the lead GENERATES it once, at first
+  session, by distilling the project's own GDD.md (goal, stack, constraints,
+  module→ownership map, roster, milestone exit criteria). Use this only to see
+  the expected shape and depth. Once a project's PROJECT.md exists, it is the
+  source of truth and is not regenerated unless the author asks. Delete this
+  comment in the generated file.
+-->
+
 # PROJECT.md — Project-Specific Instructions
 
 Project detail for the agent team. **For team-running rules (the 3 rules, audit protocol, readiness
@@ -17,8 +27,8 @@ autonomous dwarves path, prioritize, and execute across a fully destructible, pr
 recipes) as the soft goal, deep-layer content holding the rarest materials, and endlessly escalating
 monster waves that keep pressure on forever.
 
-**Design authority:** the full GDD ([GDD.md](GDD.md)) is the source of truth; this file summarizes
-it for the team.
+**Design authority:** the full GDD (`GDD.md`) is the source of truth; this file summarizes it for the
+team.
 
 ## Stack & structure
 

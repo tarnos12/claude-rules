@@ -1,12 +1,22 @@
-# CLAUDE.md — Agent Team Orchestrator Guide
+# CLAUDE.md — Operating Manual (Agent-Team Orchestrator Guide)
 
-Operating guide for the **lead (orchestrator)** session when continuing an existing project with a
-Claude Code agent team. Project-agnostic: it governs *how* the team is run, not *what* is built.
-Read it fully before spawning any teammate.
+Project-agnostic guide for the **lead (orchestrator)** session: it governs *how*
+work is run, never *what* is built. Claude Code auto-loads a **repo-root**
+`CLAUDE.md` as standing instructions every session — that is why this file lives
+at the root and README does not (README is not auto-loaded).
 
-> **For project-specific instructions (goal, stack, constraints, module map, milestone exit
-> criteria), read `PROJECT.md`.** This file never contains project detail — keep it that way so it
-> stays reusable across repos.
+**Companion docs (all at the repo root):**
+- **`PROJECT.md`** — everything project-specific (goal, stack, constraints,
+  module→ownership map, roster, milestone exit criteria). Generated **once** from
+  the project's `GDD.md` at first session; not regenerated unless the author
+  asks. Example shape:
+  <https://github.com/tarnos12/claude-rules/blob/master/templates/PROJECT.md>.
+- **[`AGENT_TEAMS.md`](AGENT_TEAMS.md)** — the Claude Code agent-teams *feature*
+  reference (enabling, inter-agent messaging, the shared task list, limits).
+  This file is the *methodology*; that one is the *mechanics*.
+- **`.claude/settings.json`** — enables agent teams for every session
+  (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`).
+- **`GDD.md`** — the author-written design authority `PROJECT.md` is distilled from.
 
 ---
 
@@ -34,12 +44,11 @@ the shared context they build on.
 **Generating `PROJECT.md` (once):** if `PROJECT.md` is **missing**, generate it a single time at
 session start by distilling the project's design authority (`GDD.md`) — its goal, stack, hard
 constraints, module→ownership map, instantiated roster, and milestone exit criteria. Model the shape
-on the example at
-[`examples/PROJECT.md`](https://github.com/tarnos12/claude-rules/blob/master/examples/PROJECT.md) in
-the claude-rules repo. **Once `PROJECT.md` exists in the repo, do NOT regenerate it** on later
-sessions — treat the committed file as the source of truth and edit it in place only when the author
-explicitly asks. (`GDD.md` is authored by the author; `PROJECT.md` is the team-facing distillation of
-it, regenerated only on request.)
+on the [`templates/PROJECT.md`](https://github.com/tarnos12/claude-rules/blob/master/templates/PROJECT.md)
+example. **Once `PROJECT.md` exists in the repo, do NOT regenerate it** on later sessions — treat the
+committed file as the source of truth and edit it in place only when the author explicitly asks.
+(`GDD.md` is authored by the author; `PROJECT.md` is the team-facing distillation of it, regenerated
+only on request.)
 
 ---
 
@@ -89,7 +98,7 @@ build team → build to next milestone → QA sign-off.
 1. **Own territory.** Each agent owns its own file(s) and deliverables. Teammates may send work and
    communicate, but each only *edits its own* files (module/directory boundary = ownership).
 2. **Direct messaging.** Teammates message each other directly for dependencies — no routing every
-   exchange through the lead.
+   exchange through the lead. (Mechanics: [`AGENT_TEAMS.md`](AGENT_TEAMS.md).)
 3. **Parallel work.** Teammates work simultaneously and react to each other throughout. If work is
    purely sequential hand-offs (1→2→3), it is **not** an agent team — use subagents.
 
@@ -145,14 +154,12 @@ most-touched file from becoming the main merge-conflict point.
 
 For **game projects**, instantiate from this expanded bench in addition to the generic archetypes
 above (ignore this table for non-game projects). Each row is still an *archetype* — map it to the
-actual module and pick the model by task difficulty. Several map onto the generic roles: World
-Generation and Graphics/Rendering are specialized **Domain Devs**; Gameplay AI is usually the
-**Hard-Problem Dev**; Balance/Content is a creative-leaning owner. Keep the live team at 3–5 per
-milestone — this is a menu, not a headcount.
+actual module and pick the model by task difficulty. Keep the live team at 3–5 per milestone — this
+is a menu, not a headcount.
 
 | Discipline | Model | Owns / does | Talks to |
 |---|---|---|---|
-| **Gameplay AI** | Opus | Agent behavior, pathfinding, decision-making, steering, task/utility selection (e.g. units moving, prioritizing, reacting) | World/Sim, Systems, QA |
+| **Gameplay AI** | Opus | Agent behavior, pathfinding, decision-making, steering, task/utility selection | World/Sim, Systems, QA |
 | **Graphics / Rendering** | Sonnet | Render pipeline, layers/compositing, sprites/atlases or shaders, camera, animation, culling | World, Gameplay, UI, Asset |
 | **World / Procedural Generation** | Sonnet (Opus if complex) | World/level/terrain generation, seeding, biomes, spawn placement, chunking | Rendering, Sim, Systems |
 | **Simulation / Physics** | Opus/Sonnet | Movement, collision, gravity, fluids/particles, tick loop, determinism, LOD | Gameplay AI, World, Perf |
@@ -166,8 +173,27 @@ milestone — this is a menu, not a headcount.
 | **Narrative / Content Writing** | Fable | Story, dialogue, item/flavor text, tutorials, in-world copy | Systems, UI, Design |
 | **Netcode / Multiplayer** *(if applicable)* | Opus | Netcode, state sync, prediction/rollback, lobby/session, anti-cheat | Sim, Gameplay, Systems |
 
-Standard **Test Author** (Sonnet) and **QA / Verification** (Opus) from the generic roster apply to
-game projects unchanged.
+Standard **Test Author** (Sonnet) and **QA / Verification** (Opus) apply to game projects unchanged.
+
+---
+
+## General working rules (apply on every project, team or solo)
+
+- **Git & committing.** Commit after every completed task — one task = one focused, well-described
+  commit; push after committing. Land each completed task as a **PR** and merge it once tested. If
+  on the default branch and the change is substantial, branch first. `git fetch` and check the base
+  before starting (other sessions may share the repo).
+- **Session continuity.** Keep the project's current state where it belongs — `PROJECT.md` or a
+  dedicated status doc it points to — and **update it in the SAME commit as the code change**, so any
+  session (a different Claude instance, a cloud agent, or the author weeks later) can resume cold.
+- **Verify before claiming done.** Actually run the code / exercise the change and check behavior;
+  report failures honestly with real output. Prefer the fastest feedback loop that proves it
+  (headless test over driving the full app). After a change, tell the author **how to see it
+  running** and include a link (deployed URL or a published Artifact — a dev-server localhost a
+  remote session can't reach is not enough). Bump any cache-busting version tag on a code change.
+- **Style.** Direct, outcome first. Loop the author in on load-bearing findings and direction
+  changes; don't narrate every step. For a multi-part task, do the whole thing rather than stopping
+  to ask permission for each reversible step.
 
 ---
 
